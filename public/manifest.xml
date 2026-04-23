@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="TaskPaneApp">
+  <Id>12345678-1234-1234-1234-123456789012</Id>
+  <Version>1.0.0.0</Version>
+  <ProviderName>4sight</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="4SIGHT"/>
+  <Description DefaultValue="AI Excel co-pilot"/>
+  <IconUrl DefaultValue="https://localhost:3000/logo192.png"/>
+  <HighResolutionIconUrl DefaultValue="https://localhost:3000/logo192.png"/>
+  <SupportUrl DefaultValue="https://localhost:3000"/>
+  <AppDomains><AppDomain>https://localhost:3000</AppDomain></AppDomains>
+  <Hosts><Host Name="Workbook"/></Hosts>
+  <DefaultSettings><SourceLocation DefaultValue="https://localhost:3000"/></DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+</OfficeApp>
