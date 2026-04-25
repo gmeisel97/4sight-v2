@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable */
 /* global Office, Excel */
 
 // ── Types ────────────────────────────────────────────────────────────────────
