@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* global Office, Excel */
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -946,7 +947,7 @@ export default function App(){
         <div style={{display:'flex',alignItems:'center',gap:10}}><div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:2.5}}>{[...Array(9)].map((_,i)=><div key={i} style={{width:3,height:3,background:'rgba(255,255,255,0.65)',borderRadius:1}}/>)}</div><span style={{color:'white',fontWeight:800,fontSize:14,letterSpacing:'0.1em'}}>4SIGHT</span></div>
       
       </div>
-      {showKey&&<div style={{padding:'8px 14px',background:'#f0fdf4',borderBottom:`1px solid ${G_BORDER}`,flexShrink:0}}><div style={{fontSize:11,color:GR_TX,marginBottom:4}}>Anthropic API Key (stored in memory only)</div><input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)} placeholder="sk-ant-..." style={{width:'100%',padding:'6px 10px',border:`1px solid ${GR_BD}`,borderRadius:7,fontSize:12,outline:'none',boxSizing:'border-box' as any}}/></div>}
+     
       <div style={{display:'flex',borderBottom:`1px solid ${GR_BD}`,background:'white',flexShrink:0}}>
         {tabs.map(t=><button key={t} onClick={()=>setTab(t)} style={{flex:1,padding:'9px 4px',border:'none',background:'none',fontSize:12,fontWeight:t===tab?600:400,cursor:'pointer',color:t===tab?TX:GR_TX,borderBottom:t===tab?`2px solid ${G_MID}`:'2px solid transparent',position:'relative'}}>{t}{t==='Changes'&&pendingCount>0&&<span style={{position:'absolute',top:4,right:4,background:'#dc2626',color:'white',borderRadius:'50%',width:16,height:16,fontSize:9,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'}}>{pendingCount}</span>}</button>)}
       </div>
