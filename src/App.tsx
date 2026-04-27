@@ -10,7 +10,7 @@ interface Rule { id: number; name: string; type: string; typeBg: string; typeCol
 interface Template { name: string; icon: string; desc: string; sheets: number; cells: number; cat: string; catBg: string; catCol: string; star: boolean; isnew?: boolean; }
 interface DissectResult { drivers: { cell: string; label: string; value: string; controls: string; whyMatters: string; }[]; risks: { title: string; detail: string; impact: string; }[]; sensitivity: { input1: { cell: string; label: string; value: string; range: string; why: string; }; input2: { cell: string; label: string; value: string; range: string; why: string; }; }; }
 interface CapTableInvestor { name: string; common: number; options: number; seed1: number; seed2: number; safe: number; seriesA: number; seriesB: number; invested: number; liquidationPref: number; seniority: number; }
-interface ExitScenario { name: string; probability: number; exitRevenue: number; exitMultiple: number; exitDate: string; exitEV: number; }
+interface ExitScenario { name: string; probability: number; exitRevenue: number|string; exitMultiple: number|string; exitDate: string; exitEV: number|string; }
 interface AgentDef { id: number; name: string; icon: string; desc: string; scope: string[]; rules: string[]; on: boolean; }
 
 // ── Colors ────────────────────────────────────────────────────────────────────
@@ -361,7 +361,7 @@ async function runExitAnalysis(apiKey:string,cells:{address:string;value:string;
   const investors=capData.investors||[];
   const totalShares=capData.totalShares||investors.reduce((s:number,i:any)=>s+i.totalShares,0)||1;
   return scenarios.map(scenario=>{
-    let remaining=scenario.exitEV;
+    let remaining=typeof scenario.exitEV==='string'?parseFloat(scenario.exitEV)||0:scenario.exitEV;
     const proceeds:Record<string,{pref:number;common:number}>={};
     investors.forEach((i:any)=>{proceeds[i.name]={pref:0,common:0};});
     for(const seniority of[1,2,3,4]){
@@ -419,7 +419,7 @@ function ExitAnalysisAgent({apiKey,onChangesProposed}:{apiKey:string;onChangesPr
     setRunning(true);setStatus('Reading cap table across all sheets...');
     try{
       const cells=await readAllSheets();
-      const resolvedScenarios=scenarios.map(sc=>({...sc,exitEV:sc.exitRevenue&&sc.exitMultiple?sc.exitRevenue*sc.exitMultiple:sc.exitEV}));
+      const resolvedScenarios=scenarios.map(sc=>{const rev=typeof sc.exitRevenue==='string'?parseFloat(sc.exitRevenue)||0:sc.exitRevenue;const mult=typeof sc.exitMultiple==='string'?parseFloat(sc.exitMultiple)||0:sc.exitMultiple;const ev=typeof sc.exitEV==='string'?parseFloat(sc.exitEV)||0:sc.exitEV;return{...sc,exitEV:rev&&mult?rev*mult:ev};});
       setStatus('Computing exit waterfalls...');
       setWaterfall(await runExitAnalysis(apiKey,cells,resolvedScenarios));
       setStatus('Preview below. Click "Write to Spreadsheet" to push the waterfall table.');
@@ -455,12 +455,12 @@ function ExitAnalysisAgent({apiKey,onChangesProposed}:{apiKey:string;onChangesPr
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
             <Input label='Scenario Name' value={sc.name} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],name:v};return a;})}/>
             <Input label='Probability (0-1)' value={String(sc.probability)} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],probability:parseFloat(v)||0};return a;})} type='number'/>
-            <Input label='Exit Revenue ($)' value={String(sc.exitRevenue||'')} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitRevenue:parseFloat(v)||0};return a;})} type='number' placeholder='auto-detected or enter'/>
-            <Input label='Exit Multiple (x)' value={String(sc.exitMultiple||'')} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitMultiple:parseFloat(v)||0};return a;})} type='number' placeholder='e.g. 3.0'/>
-            <Input label='Exit Date' value={sc.exitDate} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitDate:v};return a;})} type='date'/>
-            <Input label='Exit EV ($ override)' value={String(sc.exitEV||'')} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitEV:parseFloat(v)||0};return a;})} type='number' placeholder='or use Rev x Multiple'/>
+            <Input label='Exit Revenue ($) or =formula' value={String(sc.exitRevenue||'')} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitRevenue:v.startsWith('=')?v:parseFloat(v)||0};return a;})} type='text' placeholder='e.g. 5000000 or =Sheet2!B4'/>
+            <Input label='Exit Multiple (x) or =formula' value={String(sc.exitMultiple||'')} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitMultiple:v.startsWith('=')?v:parseFloat(v)||0};return a;})} type='text' placeholder='e.g. 3.0 or =Sheet3!B5'/>
+            <Input label='Exit Date' value={sc.exitDate} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitDate:v};return a;})} type='text' placeholder='e.g. 2028-12-31'/>
+            <Input label='Exit EV ($ override) or =formula' value={String(sc.exitEV||'')} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitEV:v.startsWith('=')?v:parseFloat(v)||0};return a;})} type='text' placeholder='e.g. 200000000 or =Sheet2!B4*Sheet3!B5'/>
           </div>
-          {sc.exitRevenue&&sc.exitMultiple?<div style={{fontSize:11,color:G_MID,marginTop:4}}>Implied Exit EV: {fmtDollar(sc.exitRevenue*sc.exitMultiple)}</div>:null}
+          {sc.exitRevenue&&sc.exitMultiple?<div style={{fontSize:11,color:G_MID,marginTop:4}}>Implied Exit EV: {fmtDollar((typeof sc.exitRevenue==='string'?parseFloat(sc.exitRevenue)||0:sc.exitRevenue)*(typeof sc.exitMultiple==='string'?parseFloat(sc.exitMultiple)||0:sc.exitMultiple))}</div>:null}
         </div>
       ))}
         <Btn label='+ Add Scenario' onClick={()=>setScenarios(s=>[...s,{name:'Scenario',probability:0.1,exitRevenue:0,exitMultiple:0,exitDate:'',exitEV:100000000}])} small/>
