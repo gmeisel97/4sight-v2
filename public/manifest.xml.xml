@@ -10,17 +10,17 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="4SIGHT"/>
   <Description DefaultValue="AI-powered Excel co-pilot for investment banking and VC workflows"/>
-  <IconUrl DefaultValue="https://localhost:3000/logo192.png"/>
-  <HighResolutionIconUrl DefaultValue="https://localhost:3000/logo192.png"/>
-  <SupportUrl DefaultValue="https://localhost:3000"/>
+  <IconUrl DefaultValue="https://https://4sight-kappa.vercel.app/logo192.png"/>
+  <HighResolutionIconUrl DefaultValue="https://https://4sight-kappa.vercel.app/logo192.png"/>
+  <SupportUrl DefaultValue="https://https://4sight-kappa.vercel.app"/>
   <AppDomains>
-    <AppDomain>https://localhost:3000</AppDomain>
+    <AppDomain>https://https://4sight-kappa.vercel.app</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Workbook"/>
   </Hosts>
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://localhost:3000"/>
+    <SourceLocation DefaultValue="https://https://4sight-kappa.vercel.app"/>
   </DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
@@ -66,14 +66,14 @@
     </Hosts>
     <Resources>
       <bt:Images>
-        <bt:Image id="Icon.16x16" DefaultValue="https://localhost:3000/logo192.png"/>
-        <bt:Image id="Icon.32x32" DefaultValue="https://localhost:3000/logo192.png"/>
-        <bt:Image id="Icon.80x80" DefaultValue="https://localhost:3000/logo192.png"/>
+        <bt:Image id="Icon.16x16" DefaultValue="https://https://4sight-kappa.vercel.app/logo192.png"/>
+        <bt:Image id="Icon.32x32" DefaultValue="https://https://4sight-kappa.vercel.app/logo192.png"/>
+        <bt:Image id="Icon.80x80" DefaultValue="https://https://4sight-kappa.vercel.app/logo192.png"/>
       </bt:Images>
       <bt:Urls>
         <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812"/>
-        <bt:Url id="Commands.Url" DefaultValue="https://localhost:3000"/>
-        <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000"/>
+        <bt:Url id="Commands.Url" DefaultValue="https://https://4sight-kappa.vercel.app"/>
+        <bt:Url id="Taskpane.Url" DefaultValue="https://https://4sight-kappa.vercel.app"/>
       </bt:Urls>
       <bt:ShortStrings>
         <bt:String id="GetStarted.Title" DefaultValue="Get started with 4SIGHT"/>
