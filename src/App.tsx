@@ -10,7 +10,7 @@ interface Rule { id: number; name: string; type: string; typeBg: string; typeCol
 interface Template { name: string; icon: string; desc: string; sheets: number; cells: number; cat: string; catBg: string; catCol: string; star: boolean; isnew?: boolean; }
 interface DissectResult { drivers: { cell: string; label: string; value: string; controls: string; whyMatters: string; }[]; risks: { title: string; detail: string; impact: string; }[]; sensitivity: { input1: { cell: string; label: string; value: string; range: string; why: string; }; input2: { cell: string; label: string; value: string; range: string; why: string; }; }; }
 interface CapTableInvestor { name: string; common: number; options: number; seed1: number; seed2: number; safe: number; seriesA: number; seriesB: number; invested: number; liquidationPref: number; seniority: number; }
-interface ExitScenario { name: string; probability: number; exitEV: number; }
+interface ExitScenario { name: string; probability: number; exitRevenue: number; exitMultiple: number; exitDate: string; exitEV: number; }
 interface AgentDef { id: number; name: string; icon: string; desc: string; scope: string[]; rules: string[]; on: boolean; }
 
 // ── Colors ────────────────────────────────────────────────────────────────────
@@ -42,6 +42,28 @@ function Btn({label,onClick,color=G_MID,small=false,disabled=false}:{label:strin
 }
 
 // ── Excel Helpers ─────────────────────────────────────────────────────────────
+async function readAllSheets(){
+  try{
+    return await Excel.run(async(ctx)=>{
+      const sheets=ctx.workbook.worksheets;
+      sheets.load('items/name');await ctx.sync();
+      const allCells:{address:string;value:string;formula:string;sheet:string}[]=[];
+      for(const sheet of sheets.items){
+        try{
+          const range=sheet.getUsedRange();
+          range.load(['values','formulas','address']);await ctx.sync();
+          const vals=range.values as any[][],fmls=range.formulas as any[][];
+          for(let r=0;r<Math.min(vals.length,80);r++)for(let c=0;c<Math.min(vals[r].length,20);c++){
+            if(vals[r][c]!==''&&vals[r][c]!==null)
+              allCells.push({address:`${String.fromCharCode(65+c)}${r+1}`,value:String(vals[r][c]),formula:String(fmls[r][c]),sheet:sheet.name});
+          }
+        }catch{}
+      }
+      return allCells;
+    });
+  }catch{return[];}
+}
+
 async function readActiveSheet(){
   try{
     return await Excel.run(async(ctx)=>{
@@ -322,10 +344,18 @@ function CapTableAgent({apiKey,onChangesProposed}:{apiKey:string;onChangesPropos
 }
 
 // ── Exit Analysis Agent ───────────────────────────────────────────────────────
-interface ExitWaterfallScenario { scenario:string; rows:{investor:string;liqPref:number;seniority:number;prefProceeds:number;commonProceeds:number;total:number;moic:number}[]; weightedMoic:number; }
+interface ExitWaterfallScenario { scenario:string; rows:{investor:string;liqPref:number;seniority:number;prefProceeds:number;commonProceeds:number;total:number;moic:number;irr:number}[]; weightedMoic:number; }
+function calcIRR(invested:number,proceeds:number,exitDateStr:string,entryDateStr:string='2022-01-01'):number{
+  try{
+    const entry=new Date(entryDateStr),exit=new Date(exitDateStr);
+    const years=(exit.getTime()-entry.getTime())/(365.25*24*60*60*1000);
+    if(years<=0||invested<=0)return 0;
+    return Math.pow(proceeds/invested,1/years)-1;
+  }catch{return 0;}
+}
 
-async function runExitAnalysis(apiKey:string,cells:{address:string;value:string;formula:string}[],scenarios:ExitScenario[]):Promise<ExitWaterfallScenario[]>{
-  const context=cells.slice(0,120).map(c=>`${c.address}: value=${c.value}${c.formula!==c.value?` formula=${c.formula}`:''}`).join('\n');
+async function runExitAnalysis(apiKey:string,cells:{address:string;value:string;formula:string;sheet?:string}[],scenarios:ExitScenario[]):Promise<ExitWaterfallScenario[]>{
+  const context=cells.slice(0,200).map(c=>`[${c.sheet||'Sheet'}] ${c.address}: value=${c.value}${c.formula!==c.value?` formula=${c.formula}`:''}`).join('\n');
   const system=`Extract investor data from this cap table spreadsheet. Return JSON: {"investors":[{"name":"investor name","totalShares":number,"invested":number,"liquidationPref":number,"seniority":number}],"totalShares":number} seniority: 1=most senior. liquidationPref = total liquidation preference dollars. Return ONLY valid JSON.`;
   const capData=await claudeJSON(context,system,apiKey);
   const investors=capData.investors||[];
@@ -342,25 +372,56 @@ async function runExitAnalysis(apiKey:string,cells:{address:string;value:string;
       else{group.forEach((i:any)=>{proceeds[i.name].pref=remaining*(i.liquidationPref/totalPref);});remaining=0;break;}
     }
     if(remaining>0)investors.forEach((i:any)=>{proceeds[i.name].common=remaining*(i.totalShares/totalShares);});
-    const rows=investors.map((i:any)=>{const total=proceeds[i.name].pref+proceeds[i.name].common;return{investor:i.name,liqPref:i.liquidationPref,seniority:i.seniority,prefProceeds:proceeds[i.name].pref,commonProceeds:proceeds[i.name].common,total,moic:i.invested>0?total/i.invested:0};});
+    const rows=investors.map((i:any)=>{const total=proceeds[i.name].pref+proceeds[i.name].common;const moic=i.invested>0?total/i.invested:0;const irr=i.invested>0?calcIRR(i.invested,total,scenario.exitDate):0;return{investor:i.name,liqPref:i.liquidationPref,seniority:i.seniority,prefProceeds:proceeds[i.name].pref,commonProceeds:proceeds[i.name].common,total,moic,irr};});
     const eipRow=rows.find(r=>r.investor.toLowerCase().includes('eip'));
     return{scenario:scenario.name,rows,weightedMoic:eipRow?eipRow.moic:rows.reduce((s,r)=>s+r.moic,0)/Math.max(rows.length,1)};
   });
 }
 
 function ExitAnalysisAgent({apiKey,onChangesProposed}:{apiKey:string;onChangesProposed:(c:Change[])=>void}){
-  const [scenarios,setScenarios]=useState<ExitScenario[]>([{name:'Downside',probability:0.2,exitEV:20000000},{name:'Base',probability:0.5,exitEV:200000000},{name:'Upside',probability:0.3,exitEV:500000000}]);
+  const [scenarios,setScenarios]=useState<ExitScenario[]>([
+    {name:'Downside',probability:0.2,exitRevenue:0,exitMultiple:0,exitDate:'2026-12-31',exitEV:20000000},
+    {name:'Base',probability:0.5,exitRevenue:0,exitMultiple:0,exitDate:'2028-12-31',exitEV:200000000},
+    {name:'Upside',probability:0.3,exitRevenue:0,exitMultiple:0,exitDate:'2030-12-31',exitEV:500000000},
+  ]);
+  const [entryDate,setEntryDate]=useState('2022-01-01');
+  const [scanning,setScanning]=useState(false);
+  const [scanNote,setScanNote]=useState('');
   const [waterfall,setWaterfall]=useState<ExitWaterfallScenario[]>([]);
   const [status,setStatus]=useState('');
   const [running,setRunning]=useState(false);
 
+  const scanSheets=async()=>{
+    if(!apiKey){setScanNote('Enter API key first.');return;}
+    setScanning(true);setScanNote('Scanning all sheets...');
+    try{
+      const cells=await readAllSheets();
+      const context=cells.slice(0,150).map(c=>`[${c.sheet}] ${c.address}: ${c.value}`).join('\n');
+      const found=await claudeJSON(context,`Scan this workbook for exit-related data. Return JSON: {"exitRevenue":number_or_0,"exitMultiple":number_or_0,"exitDate":"YYYY-MM-DD or empty","entryDate":"YYYY-MM-DD or empty","sheetsFound":["list of relevant sheet names"],"notes":"brief summary of what was found"} Return 0 if not found. Return ONLY valid JSON.`,apiKey);
+      let note=`Scanned all sheets. `;
+      if(found.sheetsFound?.length)note+=`Found relevant data in: ${found.sheetsFound.join(', ')}. `;
+      if(found.notes)note+=found.notes;
+      setScanNote(note);
+      if(found.entryDate)setEntryDate(found.entryDate);
+      if(found.exitRevenue||found.exitMultiple||found.exitDate){
+        setScenarios(s=>s.map(sc=>({...sc,
+          exitRevenue:found.exitRevenue&&sc.exitRevenue===0?found.exitRevenue:sc.exitRevenue,
+          exitMultiple:found.exitMultiple&&sc.exitMultiple===0?found.exitMultiple:sc.exitMultiple,
+          exitDate:found.exitDate&&!sc.exitDate?found.exitDate:sc.exitDate,
+        })));
+      }
+    }catch(err){setScanNote(`Scan error: ${err instanceof Error?err.message:'Unknown'}`);}
+    setScanning(false);
+  };
+
   const run=async()=>{
     if(!apiKey){setStatus('Please enter your API key first.');return;}
-    setRunning(true);setStatus('Reading cap table...');
+    setRunning(true);setStatus('Reading cap table across all sheets...');
     try{
-      const cells=await readActiveSheet();
+      const cells=await readAllSheets();
+      const resolvedScenarios=scenarios.map(sc=>({...sc,exitEV:sc.exitRevenue&&sc.exitMultiple?sc.exitRevenue*sc.exitMultiple:sc.exitEV}));
       setStatus('Computing exit waterfalls...');
-      setWaterfall(await runExitAnalysis(apiKey,cells,scenarios));
+      setWaterfall(await runExitAnalysis(apiKey,cells,resolvedScenarios));
       setStatus('Preview below. Click "Write to Spreadsheet" to push the waterfall table.');
     }catch(err){setStatus(`Error: ${err instanceof Error?err.message:'Unknown'}`);}
     setRunning(false);
@@ -392,7 +453,7 @@ function ExitAnalysisAgent({apiKey,onChangesProposed}:{apiKey:string;onChangesPr
             </div>
           </div>
         ))}
-        <Btn label='+ Add Scenario' onClick={()=>setScenarios(s=>[...s,{name:'Scenario',probability:0.1,exitEV:100000000}])} small/>
+        <Btn label='+ Add Scenario' onClick={()=>setScenarios(s=>[...s,{name:'Scenario',probability:0.1,exitRevenue:0,exitMultiple:0,exitDate:'',exitEV:100000000}])} small/>
       </div>
       <Btn label={running?'Running...':'Run Exit Analysis'} onClick={run} disabled={running}/>
       {waterfall.length>0&&(
@@ -402,7 +463,7 @@ function ExitAnalysisAgent({apiKey,onChangesProposed}:{apiKey:string;onChangesPr
               <SHdr color='#244062' label={`${sc.scenario.toUpperCase()} SCENARIO`}/>
               <div style={{overflowX:'auto',marginBottom:8}}>
                 <table style={{width:'100%',borderCollapse:'collapse',fontSize:11}}>
-                  <thead><tr>{['Investor','Liq. Pref','Pref $','Common $','Total','MOIC'].map(h=><th key={h} style={{textAlign:'left',padding:'4px 6px',background:'#244062',color:'white',fontWeight:700}}>{h}</th>)}</tr></thead>
+                  <thead><tr>{['Investor','Liq. Pref','Pref $','Common $','Total','MoM','IRR'].map(h=><th key={h} style={{textAlign:'left',padding:'4px 6px',background:'#244062',color:'white',fontWeight:700}}>{h}</th>)}</tr></thead>
                   <tbody>{sc.rows.map((r,ri)=><tr key={ri} style={{borderBottom:`1px solid ${GR_BD}`,background:ri%2===0?'white':'#f9fafb'}}>
                     <td style={{padding:'4px 6px',color:TX,fontWeight:600}}>{r.investor}</td>
                     <td style={{padding:'4px 6px',color:GR_TX}}>{fmtDollar(r.liqPref)}</td>
@@ -410,6 +471,7 @@ function ExitAnalysisAgent({apiKey,onChangesProposed}:{apiKey:string;onChangesPr
                     <td style={{padding:'4px 6px',color:GR_TX}}>{fmtDollar(r.commonProceeds)}</td>
                     <td style={{padding:'4px 6px',color:TX,fontWeight:700}}>{fmtDollar(r.total)}</td>
                     <td style={{padding:'4px 6px',color:r.moic>=2?G_MID:r.moic<1?'#dc2626':TX,fontWeight:700}}>{fmtMoic(r.moic)}</td>
+                    <td style={{padding:'4px 6px',color:GR_TX}}>{r.irr?`${(r.irr*100).toFixed(1)}%`:'-'}</td>
                   </tr>)}</tbody>
                 </table>
               </div>
