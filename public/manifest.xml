@@ -6,11 +6,11 @@
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="4SIGHT"/>
   <Description DefaultValue="AI Excel co-pilot"/>
-  <IconUrl DefaultValue="https://localhost:3000/logo192.png"/>
-  <HighResolutionIconUrl DefaultValue="https://localhost:3000/logo192.png"/>
-  <SupportUrl DefaultValue="https://localhost:3000"/>
-  <AppDomains><AppDomain>https://localhost:3000</AppDomain></AppDomains>
+  <IconUrl DefaultValue="https://https://4sight-kappa.vercel.app/logo192.png"/>
+  <HighResolutionIconUrl DefaultValue="https://https://4sight-kappa.vercel.app/logo192.png"/>
+  <SupportUrl DefaultValue="https://https://4sight-kappa.vercel.app"/>
+  <AppDomains><AppDomain>https://https://4sight-kappa.vercel.app</AppDomain></AppDomains>
   <Hosts><Host Name="Workbook"/></Hosts>
-  <DefaultSettings><SourceLocation DefaultValue="https://localhost:3000"/></DefaultSettings>
+  <DefaultSettings><SourceLocation DefaultValue="https://https://4sight-kappa.vercel.app"/></DefaultSettings>
   <Permissions>ReadWriteDocument</Permissions>
 </OfficeApp>
