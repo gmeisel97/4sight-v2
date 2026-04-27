@@ -443,16 +443,26 @@ function ExitAnalysisAgent({apiKey,onChangesProposed}:{apiKey:string;onChangesPr
     <div style={{display:'flex',flexDirection:'column',gap:10}}>
       {status&&<div style={{background:G_LIGHT,border:`1px solid ${G_BORDER}`,borderRadius:8,padding:'8px 12px',fontSize:11,color:G_DARK}}>{status}</div>}
       <div style={{background:'white',border:`1px solid ${GR_BD}`,borderRadius:10,padding:14}}>
-        <SHdr color='#244062' label='EXIT SCENARIOS'/>
-        {scenarios.map((sc,i)=>(
-          <div key={i} style={{background:'#f9fafb',borderRadius:8,padding:10,marginBottom:8}}>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:6}}>
-              <Input label='Name' value={sc.name} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],name:v};return a;})}/>
-              <Input label='Exit EV ($)' value={String(sc.exitEV)} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitEV:parseFloat(v)||0};return a;})} type='number'/>
-              <Input label='Probability' value={String(sc.probability)} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],probability:parseFloat(v)||0};return a;})} type='number'/>
-            </div>
+<div style={{marginBottom:10}}>
+        <div style={{fontSize:11,color:GR_TX,marginBottom:6}}>4SIGHT will scan all tabs to find cap table and exit data, then ask for anything missing.</div>
+        <Btn label={scanning?'Scanning...':'Scan All Sheets'} onClick={scanSheets} disabled={scanning} color='#244062'/>
+        {scanNote&&<div style={{marginTop:8,background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:7,padding:'7px 10px',fontSize:11,color:'#1e40af'}}>{scanNote}</div>}
+      </div>
+      <Input label='Investment Entry Date' value={entryDate} onChange={setEntryDate} type='date'/>
+      <SHdr color='#244062' label='EXIT SCENARIOS'/>
+      {scenarios.map((sc,i)=>(
+        <div key={i} style={{background:'#f9fafb',borderRadius:8,padding:10,marginBottom:8}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6}}>
+            <Input label='Scenario Name' value={sc.name} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],name:v};return a;})}/>
+            <Input label='Probability (0-1)' value={String(sc.probability)} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],probability:parseFloat(v)||0};return a;})} type='number'/>
+            <Input label='Exit Revenue ($)' value={String(sc.exitRevenue||'')} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitRevenue:parseFloat(v)||0};return a;})} type='number' placeholder='auto-detected or enter'/>
+            <Input label='Exit Multiple (x)' value={String(sc.exitMultiple||'')} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitMultiple:parseFloat(v)||0};return a;})} type='number' placeholder='e.g. 3.0'/>
+            <Input label='Exit Date' value={sc.exitDate} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitDate:v};return a;})} type='date'/>
+            <Input label='Exit EV ($ override)' value={String(sc.exitEV||'')} onChange={v=>setScenarios(s=>{const a=[...s];a[i]={...a[i],exitEV:parseFloat(v)||0};return a;})} type='number' placeholder='or use Rev x Multiple'/>
           </div>
-        ))}
+          {sc.exitRevenue&&sc.exitMultiple?<div style={{fontSize:11,color:G_MID,marginTop:4}}>Implied Exit EV: {fmtDollar(sc.exitRevenue*sc.exitMultiple)}</div>:null}
+        </div>
+      ))}
         <Btn label='+ Add Scenario' onClick={()=>setScenarios(s=>[...s,{name:'Scenario',probability:0.1,exitRevenue:0,exitMultiple:0,exitDate:'',exitEV:100000000}])} small/>
       </div>
       <Btn label={running?'Running...':'Run Exit Analysis'} onClick={run} disabled={running}/>
